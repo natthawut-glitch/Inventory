@@ -1230,6 +1230,50 @@ async function loadProducts() {
   showLoading("prodLoading", false);
 }
 
+function loadProductOptions() {
+  if (!products.length) {
+    apiCall({action:"getProducts"}).then(function(p) { products = p; fillSelects(); }).catch(function(){});
+  } else {
+    fillSelects();
+  }
+  loadInventoryMap();
+}
+
+function fillSelects() {
+  var opts = "<option value=''>— เลือกพัสดุ —</option>" +
+    products.map(function(p) {
+      return "<option value='" + p.id + "' data-unit='" + (p.unit||'') + "'>" + p.name + "</option>";
+    }).join("");
+  ["in-product","out-product"].forEach(function(id) {
+    var sel = document.getElementById(id);
+    if (!sel) return;
+    var cur = sel.value;
+    sel.innerHTML = opts;
+    if (cur) sel.value = cur;
+  });
+}
+
+var invMap = {};
+async function loadInventoryMap() {
+  try {
+    var inv = await apiCall({action:"getInventory"});
+    invMap = {};
+    inv.forEach(function(i) { invMap[i.productId] = i.qty; });
+  } catch(e) {}
+}
+
+function fillInProduct() {
+  var sel = document.getElementById("in-product");
+  var opt = sel.options[sel.selectedIndex];
+  document.getElementById("in-unit").value = opt.dataset.unit || "";
+}
+
+function fillOutProduct() {
+  var sel = document.getElementById("out-product");
+  var qty = invMap[sel.value];
+  document.getElementById("out-stock").value = qty !== undefined ? qty : "—";
+}
+
 function buildProdCatFilter() {
   var cats = [];
   products.forEach(function(p) {
@@ -1407,7 +1451,7 @@ function showProdStatus(type, name) {
         "<div style='font-size:14px;font-weight:700;color:" + txtcol + ";margin-bottom:3px;'>" + msg + "</div>" +
         "<div style='font-size:13px;color:var(--text2);'>พัสดุ: <strong>" + name + "</strong> &nbsp;·&nbsp; " + now + "</div>" +
       "</div>" +
-      "<button onclick='this.parentNode.style.display=\"none\"' " +
+      "<button onclick='hideEl(this.parentNode)' " +
         "style='background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;'>✕</button>" +
     "</div>";
   setTimeout(function() { strip.style.display = "none"; }, 6000);
