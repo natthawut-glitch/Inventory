@@ -1418,14 +1418,27 @@ function showProdStatus(type, name) {
 // ─── PRODUCT OPTIONS ─────────────────────────────────────
 var invMap = {};
 function loadProductOptions() {
-  if (!products.length) {
-    apiCall({action:'getProducts'}).then(function(p){ products=p; fillSelects(); }).catch(function(){});
-  } else { fillSelects(); }
+  // Always fetch fresh when opening modal to get latest data
+  apiCall({action:'getProducts'})
+    .then(function(p) {
+      products = p.filter(function(x){ return x.id && x.name && x.name !== 'undefined'; });
+      fillSelects();
+    })
+    .catch(function(e) {
+      if (products.length) fillSelects(); // fallback to cached
+    });
   loadInventoryMap();
 }
 function fillSelects() {
+  // กรองพัสดุที่มี id และ name เท่านั้น ป้องกัน undefined
+  var valid = products.filter(function(p){ return p.id && p.name && p.name !== 'undefined'; });
   var opts = "<option value=''>— เลือกพัสดุ —</option>" +
-    products.map(function(p){ return "<option value='"+p.id+"' data-unit='"+(p.unit||'')+"'>"+p.name+"</option>"; }).join('');
+    valid.map(function(p){
+      var n = p.name || '';
+      var u = p.unit || '';
+      var i = p.id   || '';
+      return "<option value='" + i + "' data-unit='" + u + "'>" + n + "</option>";
+    }).join('');
   ['in-product','out-product'].forEach(function(id) {
     var sel = document.getElementById(id); if(!sel) return;
     var cur = sel.value; sel.innerHTML = opts; if(cur) sel.value=cur;
