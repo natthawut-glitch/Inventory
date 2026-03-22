@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบควบคุมสต๊อกสินค้า</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --border: #30363d;
+    --accent: #00d4aa;
+    --accent2: #f7b731;
+    --accent3: #e74c3c;
+    --accent4: #3498db;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --text3: #6e7681;
+    --success: #2ecc71;
+    --warning: #f39c12;
+    --danger: #e74c3c;
+    --info: #3498db;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Sarabun', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent), #00a884);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .config-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 13px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .config-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--text3);
+  }
+  .status-dot.connected { background: var(--success); box-shadow: 0 0 6px var(--success); }
+
+  /* ── LAYOUT ── */
+  .layout { display: flex; height: calc(100vh - 60px); }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 16px 0;
+    flex-shrink: 0;
+    overflow-y: auto;
+  }
+  .nav-section {
+    padding: 0 12px 8px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 12px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text2);
+    transition: all 0.15s;
+    border-left: 3px solid transparent;
+    margin: 1px 0;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { 
+    background: rgba(0,212,170,0.08);
+    color: var(--accent);
+    border-left-color: var(--accent);
+    font-weight: 500;
+  }
+  .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+  /* ── CONTENT ── */
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg);
+    padding: 24px;
+  }
+
+  /* ── PAGE ── */
+  .page { display: none; }
+  .page.active { display: block; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .page-title {
+    font-size: 22px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .page-subtitle { font-size: 13px; color: var(--text2); margin-top: 2px; }
+
+  /* ── CARDS ── */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .stat-card:hover { border-color: var(--accent); }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    opacity: 0.05;
+    transform: translate(20px, -20px);
+  }
+  .stat-card.green::before { background: var(--success); }
+  .stat-card.yellow::before { background: var(--warning); }
+  .stat-card.red::before { background: var(--danger); }
+  .stat-card.blue::before { background: var(--info); }
+  .stat-label { font-size: 12px; color: var(--text2); font-weight: 500; margin-bottom: 8px; }
+  .stat-value { font-size: 28px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; }
+  .stat-value.green { color: var(--success); }
+  .stat-value.yellow { color: var(--warning); }
+  .stat-value.red { color: var(--danger); }
+  .stat-value.blue { color: var(--info); }
+  .stat-sub { font-size: 12px; color: var(--text3); margin-top: 4px; }
+
+  /* ── TABLE ── */
+  .table-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .table-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .table-title { font-size: 14px; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    background: var(--surface2);
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 11px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(48,54,61,0.5);
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .mono { font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+
+  /* ── BADGES ── */
+  .badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-success { background: rgba(46,204,113,0.15); color: var(--success); }
+  .badge-warning { background: rgba(243,156,18,0.15); color: var(--warning); }
+  .badge-danger { background: rgba(231,76,60,0.15); color: var(--danger); }
+  .badge-info { background: rgba(52,152,219,0.15); color: var(--info); }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 7px;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+  }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { background: #00c49a; transform: translateY(-1px); }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: rgba(231,76,60,0.15); color: var(--danger); border: 1px solid rgba(231,76,60,0.3); }
+  .btn-danger:hover { background: rgba(231,76,60,0.25); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+  /* ── FORM ── */
+  .form-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .form-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 12px; font-weight: 500; color: var(--text2); }
+  input, select, textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--text);
+    padding: 9px 12px;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 13px;
+    transition: border-color 0.15s;
+    outline: none;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  select option { background: var(--surface2); }
+  textarea { resize: vertical; min-height: 70px; }
+  .form-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+  /* ── ALERT ── */
+  .alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 16px;
+    display: none;
+    align-items: center;
+    gap: 8px;
+  }
+  .alert.show { display: flex; animation: fadeIn 0.3s; }
+  .alert-success { background: rgba(46,204,113,0.1); border: 1px solid rgba(46,204,113,0.3); color: var(--success); }
+  .alert-error { background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.3); color: var(--danger); }
+  .alert-warning { background: rgba(243,156,18,0.1); border: 1px solid rgba(243,156,18,0.3); color: var(--warning); }
+  .alert-info { background: rgba(52,152,219,0.1); border: 1px solid rgba(52,152,219,0.3); color: var(--info); }
+
+  /* ── LOADING ── */
+  .loading {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    color: var(--text2);
+    font-size: 13px;
+    padding: 12px;
+  }
+  .loading.show { display: flex; }
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    width: 500px;
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: fadeIn 0.2s;
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .modal-title { font-size: 16px; font-weight: 700; }
+  .modal-close { background: none; border: none; color: var(--text2); cursor: pointer; font-size: 20px; }
+  .modal-close:hover { color: var(--text); }
+
+  /* ── CONFIG ── */
+  .config-field { margin-bottom: 14px; }
+  .config-field label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 5px; }
+  .config-field input { width: 100%; }
+  .config-note { font-size: 12px; color: var(--text3); margin-top: 10px; line-height: 1.6; }
+  .config-note a { color: var(--accent); }
+
+  /* ── LOW STOCK WARNING ── */
+  .low-stock { color: var(--warning) !important; }
+  .out-stock { color: var(--danger) !important; }
+
+  /* ── CHART BAR ── */
+  .bar-chart { padding: 8px 0; }
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    font-size: 12px;
+  }
+  .bar-label { width: 120px; text-align: right; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-track { flex: 1; height: 20px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+  .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--accent), #00a884);
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #000;
+    transition: width 0.8s ease;
+    min-width: 0;
+    white-space: nowrap;
+  }
+  .bar-value { width: 60px; font-family: 'IBM Plex Mono'; font-size: 12px; color: var(--text2); }
+
+  /* ── TABS ── */
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; background: var(--surface2); padding: 4px; border-radius: 8px; width: fit-content; }
+  .tab {
+    padding: 7px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text2);
+    transition: all 0.15s;
+    border: none;
+    background: none;
+    font-family: 'Sarabun', sans-serif;
+  }
+  .tab.active { background: var(--surface); color: var(--text); font-weight: 500; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+
+  /* ── SEARCH ── */
+  .search-box {
+    position: relative;
+    margin-bottom: 16px;
+  }
+  .search-box input { width: 100%; padding-left: 36px; }
+  .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 14px; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    .sidebar { width: 60px; }
+    .nav-item span:not(.nav-icon) { display: none; }
+    .nav-section { display: none; }
+    .content { padding: 16px; }
+    .cards-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- SETUP GUIDE MODAL -->
+<div class="modal-overlay" id="guideModal">
+  <div class="modal" style="width:640px;">
+    <div class="modal-header">
+      <div class="modal-title">📋 คู่มือการติดตั้ง Google Apps Script</div>
+      <button class="modal-close" onclick="document.getElementById('guideModal').classList.remove('show')">✕</button>
+    </div>
+    <div style="font-size:13px; line-height:2; color:var(--text2);">
+      <p style="color:var(--accent); font-weight:600; margin-bottom:8px;">ขั้นตอนการตั้งค่า:</p>
+      <ol style="padding-left:20px; margin-bottom:16px;">
+        <li>สร้าง Google Sheet ใหม่ แล้วสร้าง Sheets ดังนี้: <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;color:var(--accent)">Products, StockIn, StockOut, Inventory</code></li>
+        <li>เปิด Extensions → Apps Script</li>
+        <li>วางโค้ดด้านล่างลงใน Code.gs แล้วกด Save</li>
+        <li>คลิก Deploy → New Deployment → Web App</li>
+        <li>ตั้ง Execute as: <strong>Me</strong>, Who has access: <strong>Anyone</strong></li>
+        <li>คัดลอก Web App URL มาวางในช่อง URL ด้านบน</li>
+      </ol>
+      <p style="color:var(--accent); font-weight:600; margin-bottom:8px;">Google Apps Script Code (Code.gs):</p>
+      <pre style="background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:16px; font-size:11px; overflow-x:auto; line-height:1.6; color:#a5d6a7; font-family:'IBM Plex Mono',monospace;">const SHEET_ID = '1PbJirlvKx1tqrhPJt2guZkFdkUHMRTWmiVekGgq2seU';
+
+function doGet(e) {
+  return handleRequest(e);
+}
+function doPost(e) {
+  return handleRequest(e);
+}
+
+function handleRequest(e) {
+  const action = e.parameter.action || (e.postData ? JSON.parse(e.postData.contents).action : '');
+  const data   = e.postData ? JSON.parse(e.postData.contents) : e.parameter;
+  let result;
+  try {
+    switch(action) {
+      case 'getProducts':   result = getProducts(); break;
+      case 'addProduct':    result = addProduct(data); break;
+      case 'stockIn':       result = stockIn(data); break;
+      case 'stockOut':      result = stockOut(data); break;
+      case 'getInventory':  result = getInventory(); break;
+      case 'getReport':     result = getReport(); break;
+      case 'ping':          result = {ok:true}; break;
+      default: result = {error:'Unknown action'};
+    }
+  } catch(err) {
+    result = {error: err.message};
+  }
+  return ContentService
+    .createTextOutput(JSON.stringify(result))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function getProducts() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const sh = ss.getSheetByName('Products') || ss.insertSheet('Products');
+  const data = sh.getDataRange().getValues();
+  if(data.length <= 1) return [];
+  return data.slice(1).map(r => ({id:r[0],name:r[1],unit:r[2],minQty:r[3],category:r[4]}));
+}
+
+function addProduct(d) {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const sh = ss.getSheetByName('Products') || ss.insertSheet('Products');
+  if(sh.getLastRow() === 0) sh.appendRow(['ID','ชื่อสินค้า','หน่วย','จำนวนขั้นต่ำ','หมวดหมู่']);
+  const id = 'P' + String(Date.now()).slice(-6);
+  sh.appendRow([id,d.name,d.unit,d.minQty||0,d.category||'']);
+  return {ok:true, id};
+}
+
+function stockIn(d) {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const sh = ss.getSheetByName('StockIn') || ss.insertSheet('StockIn');
+  if(sh.getLastRow() === 0) sh.appendRow(['วันที่','รหัสสินค้า','ชื่อสินค้า','จำนวน','ผู้บันทึก','หมายเหตุ']);
+  sh.appendRow([new Date(),d.productId,d.productName,Number(d.qty),d.recorder||'',d.note||'']);
+  updateInventory(d.productId, Number(d.qty));
+  return {ok:true};
+}
+
+function stockOut(d) {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const inv = getInventoryMap();
+  const current = inv[d.productId] || 0;
+  if(current < Number(d.qty)) return {error:'สินค้าไม่เพียงพอ (คงเหลือ ' + current + ')'};
+  const sh = ss.getSheetByName('StockOut') || ss.insertSheet('StockOut');
+  if(sh.getLastRow() === 0) sh.appendRow(['วันที่','รหัสสินค้า','ชื่อสินค้า','จำนวน','ผู้เบิก','แผนก','หมายเหตุ']);
+  sh.appendRow([new Date(),d.productId,d.productName,Number(d.qty),d.requester||'',d.dept||'',d.note||'']);
+  updateInventory(d.productId, -Number(d.qty));
+  return {ok:true};
+}
+
+function getInventoryMap() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const sh = ss.getSheetByName('Inventory');
+  if(!sh) return {};
+  const data = sh.getDataRange().getValues();
+  const map = {};
+  data.slice(1).forEach(r => { map[r[0]] = r[2]; });
+  return map;
+}
+
+function updateInventory(productId, delta) {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const sh = ss.getSheetByName('Inventory') || ss.insertSheet('Inventory');
+  if(sh.getLastRow() === 0) sh.appendRow(['รหัสสินค้า','ชื่อสินค้า','คงเหลือ','อัปเดตล่าสุด']);
+  const data = sh.getDataRange().getValues();
+  for(let i=1;i<data.length;i++){
+    if(data[i][0]==productId){ sh.getRange(i+1,3).setValue(data[i][2]+delta); sh.getRange(i+1,4).setValue(new Date()); return; }
+  }
+  // ถ้ายังไม่มีให้เพิ่ม
+  const prods = getProducts();
+  const p = prods.find(x=>x.id==productId);
+  sh.appendRow([productId, p?p.name:'', delta, new Date()]);
+}
+
+function getInventory() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const invSh = ss.getSheetByName('Inventory');
+  const prods = getProducts();
+  const prodMap = {};
+  prods.forEach(p => { prodMap[p.id] = p; });
+  if(!invSh) return [];
+  const data = invSh.getDataRange().getValues();
+  return data.slice(1).map(r => ({
+    productId:r[0], productName:r[1], qty:r[2],
+    updatedAt: r[3] ? new Date(r[3]).toLocaleDateString('th-TH') : '',
+    minQty: prodMap[r[0]]?.minQty || 0,
+    unit: prodMap[r[0]]?.unit || '',
+    category: prodMap[r[0]]?.category || ''
+  }));
+}
+
+function getReport() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const inSh = ss.getSheetByName('StockIn');
+  const outSh = ss.getSheetByName('StockOut');
+  const inData = inSh ? inSh.getDataRange().getValues().slice(1) : [];
+  const outData = outSh ? outSh.getDataRange().getValues().slice(1) : [];
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthIn = inData.filter(r => new Date(r[0]) >= monthStart).reduce((s,r) => s+r[3], 0);
+  const monthOut = outData.filter(r => new Date(r[0]) >= monthStart).reduce((s,r) => s+r[3], 0);
+  return { totalIn: inData.reduce((s,r)=>s+r[3],0), totalOut: outData.reduce((s,r)=>s+r[3],0), monthIn, monthOut,
+    recentIn: inData.slice(-5).reverse(), recentOut: outData.slice(-5).reverse() };
+}</pre>
+    </div>
+    <div style="margin-top:16px;text-align:right;">
+      <button class="btn btn-primary" onclick="document.getElementById('guideModal').classList.remove('show')">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">📦</div>
+    ระบบควบคุมสต๊อกสินค้า
+  </div>
+  <div class="header-right">
+    <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text3)">
+      <div class="status-dot connected" id="statusDot"></div>
+      <span id="statusText">เชื่อมต่อแล้ว</span>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="nav-section">เมนูหลัก</div>
+    <div class="nav-item active" onclick="showPage('dashboard')">
+      <span class="nav-icon">🏠</span><span>แดชบอร์ด</span>
+    </div>
+    <div class="nav-item" onclick="showPage('stockin')">
+      <span class="nav-icon">📥</span><span>รับเข้าสินค้า</span>
+    </div>
+    <div class="nav-item" onclick="showPage('stockout')">
+      <span class="nav-icon">📤</span><span>เบิกสินค้า</span>
+    </div>
+    <div class="nav-item" onclick="showPage('inventory')">
+      <span class="nav-icon">📊</span><span>สต๊อกสินค้า</span>
+    </div>
+    <div class="nav-section">รายงาน</div>
+    <div class="nav-item" onclick="showPage('report')">
+      <span class="nav-icon">📋</span><span>รายงานคงคลัง</span>
+    </div>
+    <div class="nav-item" onclick="showPage('executive')">
+      <span class="nav-icon">📈</span><span>รายงานผู้บริหาร</span>
+    </div>
+    <div class="nav-section">จัดการ</div>
+    <div class="nav-item" onclick="showPage('products')">
+      <span class="nav-icon">🗂️</span><span>จัดการสินค้า</span>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div>
+          <div class="page-title">🏠 แดชบอร์ด</div>
+          <div class="page-subtitle">ภาพรวมสต๊อกสินค้า</div>
+        </div>
+        <button class="btn btn-secondary" onclick="loadDashboard()">🔄 รีเฟรช</button>
+      </div>
+      <div class="loading" id="dashLoading"><div class="spinner"></div> กำลังโหลดข้อมูล...</div>
+      <div class="alert" id="dashAlert"></div>
+      <div class="cards-grid" id="dashStats">
+        <div class="stat-card green"><div class="stat-label">รายการสินค้าทั้งหมด</div><div class="stat-value green" id="ds-total">—</div><div class="stat-sub">รายการ</div></div>
+        <div class="stat-card blue"><div class="stat-label">รับเข้าเดือนนี้</div><div class="stat-value blue" id="ds-in">—</div><div class="stat-sub">ชิ้น</div></div>
+        <div class="stat-card yellow"><div class="stat-label">เบิกออกเดือนนี้</div><div class="stat-value yellow" id="ds-out">—</div><div class="stat-sub">ชิ้น</div></div>
+        <div class="stat-card red"><div class="stat-label">สินค้าใกล้หมด</div><div class="stat-value red" id="ds-low">—</div><div class="stat-sub">รายการ</div></div>
+      </div>
+      <div class="table-container">
+        <div class="table-header"><div class="table-title">⚠️ สินค้าที่ต้องสั่งซื้อ</div></div>
+        <table><thead><tr><th>รหัส</th><th>ชื่อสินค้า</th><th>คงเหลือ</th><th>ขั้นต่ำ</th><th>หน่วย</th><th>สถานะ</th></tr></thead>
+        <tbody id="lowStockTable"><tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">กดรีเฟรชเพื่อโหลดข้อมูล</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- STOCK IN -->
+    <div class="page" id="page-stockin">
+      <div class="page-header">
+        <div><div class="page-title">📥 รับเข้าสินค้า</div><div class="page-subtitle">บันทึกการรับสินค้าเข้าคลัง</div></div>
+      </div>
+      <div class="alert" id="inAlert"></div>
+      <div class="form-card">
+        <div class="form-title">📝 แบบฟอร์มรับสินค้า</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>สินค้า <span style="color:var(--danger)">*</span></label>
+            <select id="in-product" onchange="fillInProduct()"><option value="">— เลือกสินค้า —</option></select>
+          </div>
+          <div class="form-group">
+            <label>จำนวน <span style="color:var(--danger)">*</span></label>
+            <input type="number" id="in-qty" min="1" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label>หน่วย</label>
+            <input type="text" id="in-unit" placeholder="ชิ้น" readonly style="background:var(--surface2)">
+          </div>
+          <div class="form-group">
+            <label>ผู้บันทึก</label>
+            <input type="text" id="in-recorder" placeholder="ชื่อ-นามสกุล">
+          </div>
+          <div class="form-group full">
+            <label>หมายเหตุ</label>
+            <textarea id="in-note" placeholder="รายละเอียดเพิ่มเติม..."></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-secondary" onclick="clearForm('in')">ล้างข้อมูล</button>
+          <button class="btn btn-primary" onclick="submitStockIn()">✅ บันทึกรับเข้า</button>
+        </div>
+        <div class="loading" id="inLoading"><div class="spinner"></div> กำลังบันทึก...</div>
+      </div>
+    </div>
+
+    <!-- STOCK OUT -->
+    <div class="page" id="page-stockout">
+      <div class="page-header">
+        <div><div class="page-title">📤 เบิกสินค้า</div><div class="page-subtitle">บันทึกการเบิกสินค้าออกจากคลัง</div></div>
+      </div>
+      <div class="alert" id="outAlert"></div>
+      <div class="form-card">
+        <div class="form-title">📝 แบบฟอร์มเบิกสินค้า</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>สินค้า <span style="color:var(--danger)">*</span></label>
+            <select id="out-product" onchange="fillOutProduct()"><option value="">— เลือกสินค้า —</option></select>
+          </div>
+          <div class="form-group">
+            <label>จำนวน <span style="color:var(--danger)">*</span></label>
+            <input type="number" id="out-qty" min="1" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label>คงเหลือ</label>
+            <input type="text" id="out-stock" readonly style="background:var(--surface2)" placeholder="—">
+          </div>
+          <div class="form-group">
+            <label>ผู้เบิก <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="out-requester" placeholder="ชื่อ-นามสกุล">
+          </div>
+          <div class="form-group">
+            <label>แผนก</label>
+            <input type="text" id="out-dept" placeholder="แผนก / ฝ่าย">
+          </div>
+          <div class="form-group full">
+            <label>หมายเหตุ</label>
+            <textarea id="out-note" placeholder="วัตถุประสงค์การเบิก..."></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-secondary" onclick="clearForm('out')">ล้างข้อมูล</button>
+          <button class="btn btn-primary" onclick="submitStockOut()">✅ บันทึกเบิกออก</button>
+        </div>
+        <div class="loading" id="outLoading"><div class="spinner"></div> กำลังบันทึก...</div>
+      </div>
+    </div>
+
+    <!-- INVENTORY -->
+    <div class="page" id="page-inventory">
+      <div class="page-header">
+        <div><div class="page-title">📊 สต๊อกสินค้า</div><div class="page-subtitle">ยอดคงเหลือสินค้าในคลัง</div></div>
+        <button class="btn btn-secondary" onclick="loadInventory()">🔄 รีเฟรช</button>
+      </div>
+      <div class="loading" id="invLoading"><div class="spinner"></div> กำลังโหลด...</div>
+      <div class="alert" id="invAlert"></div>
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="invSearch" placeholder="ค้นหาสินค้า..." oninput="filterInventory()">
+      </div>
+      <div class="table-container">
+        <div class="table-header">
+          <div class="table-title">รายการสต๊อกทั้งหมด</div>
+          <span id="invCount" style="font-size:12px;color:var(--text3)"></span>
+        </div>
+        <table><thead><tr><th>รหัสสินค้า</th><th>ชื่อสินค้า</th><th>คงเหลือ</th><th>หน่วย</th><th>ขั้นต่ำ</th><th>หมวดหมู่</th><th>อัปเดต</th><th>สถานะ</th></tr></thead>
+        <tbody id="invTable"><tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px">กดรีเฟรชเพื่อโหลดข้อมูล</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- REPORT -->
+    <div class="page" id="page-report">
+      <div class="page-header">
+        <div><div class="page-title">📋 รายงานคงคลัง</div><div class="page-subtitle">รายละเอียดการเคลื่อนไหวสินค้า</div></div>
+        <button class="btn btn-secondary" onclick="loadReport()">🔄 รีเฟรช</button>
+      </div>
+      <div class="loading" id="repLoading"><div class="spinner"></div> กำลังโหลด...</div>
+      <div class="alert" id="repAlert"></div>
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('rptIn',this)">📥 รับเข้าล่าสุด</button>
+        <button class="tab" onclick="switchTab('rptOut',this)">📤 เบิกออกล่าสุด</button>
+      </div>
+      <div id="rptIn">
+        <div class="table-container">
+          <div class="table-header"><div class="table-title">รายการรับเข้าล่าสุด</div></div>
+          <table><thead><tr><th>วันที่</th><th>รหัสสินค้า</th><th>ชื่อสินค้า</th><th>จำนวน</th><th>ผู้บันทึก</th><th>หมายเหตุ</th></tr></thead>
+          <tbody id="rptInTable"><tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">ยังไม่มีข้อมูล</td></tr></tbody></table>
+        </div>
+      </div>
+      <div id="rptOut" style="display:none">
+        <div class="table-container">
+          <div class="table-header"><div class="table-title">รายการเบิกออกล่าสุด</div></div>
+          <table><thead><tr><th>วันที่</th><th>รหัสสินค้า</th><th>ชื่อสินค้า</th><th>จำนวน</th><th>ผู้เบิก</th><th>แผนก</th></tr></thead>
+          <tbody id="rptOutTable"><tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">ยังไม่มีข้อมูล</td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXECUTIVE -->
+    <div class="page" id="page-executive">
+      <div class="page-header">
+        <div><div class="page-title">📈 รายงานสำหรับผู้บริหาร</div><div class="page-subtitle">สรุปภาพรวมสต๊อกสินค้า</div></div>
+        <button class="btn btn-secondary" onclick="loadExecutive()">🔄 รีเฟรช</button>
+      </div>
+      <div class="loading" id="execLoading"><div class="spinner"></div> กำลังโหลด...</div>
+      <div class="alert" id="execAlert"></div>
+      <div class="cards-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">
+        <div class="stat-card blue"><div class="stat-label">รับเข้าสะสม (ทั้งหมด)</div><div class="stat-value blue" id="exec-totalIn">—</div><div class="stat-sub">ชิ้น</div></div>
+        <div class="stat-card yellow"><div class="stat-label">เบิกออกสะสม (ทั้งหมด)</div><div class="stat-value yellow" id="exec-totalOut">—</div><div class="stat-sub">ชิ้น</div></div>
+        <div class="stat-card green"><div class="stat-label">รับเข้าเดือนนี้</div><div class="stat-value green" id="exec-monthIn">—</div><div class="stat-sub">ชิ้น</div></div>
+        <div class="stat-card red"><div class="stat-label">เบิกออกเดือนนี้</div><div class="stat-value red" id="exec-monthOut">—</div><div class="stat-sub">ชิ้น</div></div>
+      </div>
+      <div class="form-card">
+        <div class="form-title">📊 Top สินค้าคงเหลือสูงสุด</div>
+        <div class="bar-chart" id="execChart"><p style="color:var(--text3);font-size:13px">กดรีเฟรชเพื่อโหลดข้อมูล</p></div>
+      </div>
+    </div>
+
+    <!-- PRODUCTS -->
+    <div class="page" id="page-products">
+      <div class="page-header">
+        <div><div class="page-title">🗂️ จัดการสินค้า</div><div class="page-subtitle">เพิ่ม / แก้ไข รายการสินค้า</div></div>
+        <button class="btn btn-secondary" onclick="loadProducts()">🔄 รีเฟรช</button>
+      </div>
+      <div class="alert" id="prodAlert"></div>
+      <div class="form-card">
+        <div class="form-title">➕ เพิ่มสินค้าใหม่</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>ชื่อสินค้า <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="prod-name" placeholder="ชื่อสินค้า">
+          </div>
+          <div class="form-group">
+            <label>หน่วยนับ</label>
+            <input type="text" id="prod-unit" placeholder="ชิ้น / กล่อง / ลัง">
+          </div>
+          <div class="form-group">
+            <label>จำนวนขั้นต่ำ (แจ้งเตือน)</label>
+            <input type="number" id="prod-min" placeholder="0" min="0">
+          </div>
+          <div class="form-group">
+            <label>หมวดหมู่</label>
+            <input type="text" id="prod-cat" placeholder="หมวดหมู่">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" onclick="addProduct()">➕ เพิ่มสินค้า</button>
+        </div>
+        <div class="loading" id="prodLoading"><div class="spinner"></div> กำลังบันทึก...</div>
+      </div>
+      <div class="table-container">
+        <div class="table-header"><div class="table-title">รายการสินค้าทั้งหมด</div></div>
+        <table><thead><tr><th>รหัส</th><th>ชื่อสินค้า</th><th>หน่วย</th><th>จำนวนขั้นต่ำ</th><th>หมวดหมู่</th></tr></thead>
+        <tbody id="prodTable"><tr><td colspan="5" style="text-align:center;color:var(--text3);padding:24px">ยังไม่มีสินค้า</td></tr></tbody></table>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /layout -->
+
+<script>
+// ─── CONFIG (ฝังถาวร) ──────────────────────────────────────
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby6dp_7eoeLx1FfYsG8SkEUZpUyh93nZ955jEg-VdA6wLCeE46CTgCgZx25wH0-MVMN/exec';
+const SHEET_ID_VAL = '1PbJirlvKx1tqrhPJt2guZkFdkUHMRTWmiVekGgq2seU';
+let config = { sheetId: SHEET_ID_VAL, scriptUrl: SCRIPT_URL };
+let products = [];
+let inventory = [];
+
+// ─── INIT ────────────────────────────────────────────────
+(function init() {
+  setStatus(true);
+  loadDashboard();
+})();
+
+// ─── CONFIG (ฝังถาวร ไม่ต้องตั้งค่า) ────────────────────
+function openConfig() {}
+function closeConfig() {}
+function saveConfig() {}
+
+function setStatus(ok) {
+  document.getElementById('statusDot').className = 'status-dot' + (ok ? ' connected' : '');
+  document.getElementById('statusText').textContent = ok ? 'เชื่อมต่อแล้ว' : 'ยังไม่ได้เชื่อมต่อ';
+}
+
+function showSetupGuide() {
+  document.getElementById('guideModal').classList.add('show');
+}
+
+// ─── API (GET + query string — แก้ CORS ได้ 100%) ─────────
+async function apiCall(data) {
+  // เข้ารหัส payload เป็น base64 แล้วส่งผ่าน GET query string
+  // GAS รองรับ redirect ของ GET ได้ปกติ ไม่มีปัญหา CORS
+  const payload  = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+  const url      = SCRIPT_URL
+    + '?action='  + encodeURIComponent(data.action)
+    + '&payload=' + encodeURIComponent(payload);
+
+  const res = await fetch(url, { method: 'GET', redirect: 'follow' });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+
+  const text = await res.text();
+  let json;
+  try { json = JSON.parse(text); }
+  catch(e) { throw new Error('Response ไม่ใช่ JSON:\n' + text.substring(0, 300)); }
+  if (json && json.error) throw new Error(json.error);
+  return json;
+}
+
+// ─── NAVIGATION ──────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+
+  if (name === 'stockin' || name === 'stockout') loadProductOptions();
+  if (name === 'inventory') loadInventory();
+  if (name === 'report') loadReport();
+  if (name === 'executive') loadExecutive();
+  if (name === 'products') loadProducts();
+  if (name === 'dashboard') loadDashboard();
+}
+
+function switchTab(id, el) {
+  document.getElementById('rptIn').style.display = 'none';
+  document.getElementById('rptOut').style.display = 'none';
+  document.getElementById(id).style.display = 'block';
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ─── HELPERS ─────────────────────────────────────────────
+function showAlert(id, type, msg) {
+  const el = document.getElementById(id);
+  el.className = 'alert alert-' + type + ' show';
+  el.textContent = msg;
+  setTimeout(() => { el.classList.remove('show'); }, 4000);
+}
+function showLoading(id, show) {
+  document.getElementById(id).classList.toggle('show', show);
+}
+
+// ─── PRODUCTS ────────────────────────────────────────────
+async function loadProducts() {
+  showLoading('prodLoading', true);
+  try {
+    products = await apiCall({ action: 'getProducts' });
+    renderProductsTable();
+    loadProductOptions();
+  } catch(e) {
+    showAlert('prodAlert', 'error', '❌ ' + e.message);
+  }
+  showLoading('prodLoading', false);
+}
+
+function renderProductsTable() {
+  const tb = document.getElementById('prodTable');
+  if (!products.length) {
+    tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:24px">ยังไม่มีสินค้า</td></tr>';
+    return;
+  }
+  tb.innerHTML = products.map(p => `
+    <tr>
+      <td class="mono">${p.id}</td>
+      <td>${p.name}</td>
+      <td>${p.unit||'—'}</td>
+      <td class="mono">${p.minQty||0}</td>
+      <td>${p.category||'—'}</td>
+    </tr>`).join('');
+}
+
+async function addProduct() {
+  const name = document.getElementById('prod-name').value.trim();
+  if (!name) { showAlert('prodAlert','error','⚠️ กรุณากรอกชื่อสินค้า'); return; }
+  showLoading('prodLoading', true);
+  try {
+    await apiCall({
+      action:'addProduct',
+      name, unit: document.getElementById('prod-unit').value,
+      minQty: document.getElementById('prod-min').value||0,
+      category: document.getElementById('prod-cat').value
+    });
+    showAlert('prodAlert','success','✅ เพิ่มสินค้าสำเร็จ');
+    document.getElementById('prod-name').value='';
+    document.getElementById('prod-unit').value='';
+    document.getElementById('prod-min').value='';
+    document.getElementById('prod-cat').value='';
+    loadProducts();
+  } catch(e) {
+    showAlert('prodAlert','error','❌ '+e.message);
+  }
+  showLoading('prodLoading', false);
+}
+
+function loadProductOptions() {
+  if (!products.length) {
+    apiCall({action:'getProducts'}).then(p => { products=p; fillSelects(); }).catch(()=>{});
+  } else fillSelects();
+  loadInventoryMap();
+}
+
+function fillSelects() {
+  ['in-product','out-product'].forEach(id => {
+    const sel = document.getElementById(id);
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">— เลือกสินค้า —</option>' +
+      products.map(p=>`<option value="${p.id}" data-name="${p.name}" data-unit="${p.unit||''}">${p.name}</option>`).join('');
+    if(cur) sel.value = cur;
+  });
+}
+
+let invMap = {};
+async function loadInventoryMap() {
+  try {
+    const inv = await apiCall({action:'getInventory'});
+    invMap = {};
+    inv.forEach(i => { invMap[i.productId] = i.qty; });
+  } catch(e) {}
+}
+
+function fillInProduct() {
+  const sel = document.getElementById('in-product');
+  const opt = sel.options[sel.selectedIndex];
+  document.getElementById('in-unit').value = opt.dataset.unit||'';
+}
+function fillOutProduct() {
+  const sel = document.getElementById('out-product');
+  const opt = sel.options[sel.selectedIndex];
+  document.getElementById('out-stock').value = invMap[sel.value]!==undefined ? invMap[sel.value] : '—';
+}
+
+// ─── STOCK IN ────────────────────────────────────────────
+async function submitStockIn() {
+  const sel = document.getElementById('in-product');
+  const productId = sel.value;
+  const productName = sel.options[sel.selectedIndex]?.text || '';
+  const qty = document.getElementById('in-qty').value;
+  if (!productId || !qty || qty<=0) { showAlert('inAlert','error','⚠️ กรุณาเลือกสินค้าและกรอกจำนวน'); return; }
+  showLoading('inLoading', true);
+  try {
+    await apiCall({ action:'stockIn', productId, productName, qty,
+      recorder: document.getElementById('in-recorder').value,
+      note: document.getElementById('in-note').value });
+    showAlert('inAlert','success','✅ บันทึกรับเข้าสำเร็จ');
+    clearForm('in');
+    loadInventoryMap();
+  } catch(e) { showAlert('inAlert','error','❌ '+e.message); }
+  showLoading('inLoading', false);
+}
+
+// ─── STOCK OUT ───────────────────────────────────────────
+async function submitStockOut() {
+  const sel = document.getElementById('out-product');
+  const productId = sel.value;
+  const productName = sel.options[sel.selectedIndex]?.text || '';
+  const qty = document.getElementById('out-qty').value;
+  if (!productId || !qty || qty<=0) { showAlert('outAlert','error','⚠️ กรุณาเลือกสินค้าและกรอกจำนวน'); return; }
+  showLoading('outLoading', true);
+  try {
+    await apiCall({ action:'stockOut', productId, productName, qty,
+      requester: document.getElementById('out-requester').value,
+      dept: document.getElementById('out-dept').value,
+      note: document.getElementById('out-note').value });
+    showAlert('outAlert','success','✅ บันทึกเบิกออกสำเร็จ');
+    clearForm('out');
+    loadInventoryMap();
+  } catch(e) { showAlert('outAlert','error','❌ '+e.message); }
+  showLoading('outLoading', false);
+}
+
+function clearForm(prefix) {
+  ['product','qty','unit','recorder','note','requester','dept'].forEach(f => {
+    const el = document.getElementById(prefix+'-'+f);
+    if (el) el.value = '';
+  });
+}
+
+// ─── INVENTORY ───────────────────────────────────────────
+async function loadInventory() {
+  showLoading('invLoading', true);
+  try {
+    inventory = await apiCall({action:'getInventory'});
+    renderInventory(inventory);
+  } catch(e) { showAlert('invAlert','error','❌ '+e.message); }
+  showLoading('invLoading', false);
+}
+
+function renderInventory(data) {
+  const tb = document.getElementById('invTable');
+  document.getElementById('invCount').textContent = data.length + ' รายการ';
+  if (!data.length) {
+    tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px">ไม่มีข้อมูลสต๊อก</td></tr>';
+    return;
+  }
+  tb.innerHTML = data.map(i => {
+    const isLow = i.minQty>0 && i.qty<=i.minQty && i.qty>0;
+    const isOut = i.qty<=0;
+    const badge = isOut ? '<span class="badge badge-danger">หมด</span>'
+                : isLow ? '<span class="badge badge-warning">ใกล้หมด</span>'
+                : '<span class="badge badge-success">ปกติ</span>';
+    return `<tr>
+      <td class="mono">${i.productId}</td>
+      <td>${i.productName}</td>
+      <td class="mono ${isOut?'out-stock':isLow?'low-stock':''}">${i.qty}</td>
+      <td>${i.unit||'—'}</td>
+      <td class="mono">${i.minQty||0}</td>
+      <td>${i.category||'—'}</td>
+      <td style="color:var(--text3);font-size:12px">${i.updatedAt||'—'}</td>
+      <td>${badge}</td>
+    </tr>`;
+  }).join('');
+}
+
+function filterInventory() {
+  const q = document.getElementById('invSearch').value.toLowerCase();
+  const filtered = inventory.filter(i =>
+    i.productName.toLowerCase().includes(q) ||
+    i.productId.toLowerCase().includes(q) ||
+    (i.category||'').toLowerCase().includes(q)
+  );
+  renderInventory(filtered);
+}
+
+// ─── REPORT ──────────────────────────────────────────────
+async function loadReport() {
+  showLoading('repLoading', true);
+  try {
+    const r = await apiCall({action:'getReport'});
+    renderReportIn(r.recentIn||[]);
+    renderReportOut(r.recentOut||[]);
+  } catch(e) { showAlert('repAlert','error','❌ '+e.message); }
+  showLoading('repLoading', false);
+}
+
+function fmtDate(v) {
+  if(!v) return '—';
+  try { return new Date(v).toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'}); } catch{ return v; }
+}
+
+function renderReportIn(data) {
+  const tb = document.getElementById('rptInTable');
+  if(!data.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">ยังไม่มีข้อมูล</td></tr>';return;}
+  tb.innerHTML = data.map(r=>`<tr>
+    <td style="color:var(--text2);font-size:12px">${fmtDate(r[0])}</td>
+    <td class="mono">${r[1]}</td><td>${r[2]}</td>
+    <td class="mono" style="color:var(--success)">${r[3]}</td>
+    <td>${r[4]||'—'}</td><td style="color:var(--text3)">${r[5]||'—'}</td>
+  </tr>`).join('');
+}
+
+function renderReportOut(data) {
+  const tb = document.getElementById('rptOutTable');
+  if(!data.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">ยังไม่มีข้อมูล</td></tr>';return;}
+  tb.innerHTML = data.map(r=>`<tr>
+    <td style="color:var(--text2);font-size:12px">${fmtDate(r[0])}</td>
+    <td class="mono">${r[1]}</td><td>${r[2]}</td>
+    <td class="mono" style="color:var(--warning)">${r[3]}</td>
+    <td>${r[4]||'—'}</td><td>${r[5]||'—'}</td>
+  </tr>`).join('');
+}
+
+// ─── DASHBOARD ───────────────────────────────────────────
+async function loadDashboard() {
+  showLoading('dashLoading', true);
+  try {
+    const [inv, rpt] = await Promise.all([
+      apiCall({action:'getInventory'}),
+      apiCall({action:'getReport'})
+    ]);
+    inventory = inv;
+    const lowItems = inv.filter(i => i.minQty>0 && i.qty<=i.minQty);
+    document.getElementById('ds-total').textContent = inv.length;
+    document.getElementById('ds-in').textContent = rpt.monthIn||0;
+    document.getElementById('ds-out').textContent = rpt.monthOut||0;
+    document.getElementById('ds-low').textContent = lowItems.length;
+    renderLowStock(lowItems);
+  } catch(e) {
+    if (config.scriptUrl) showAlert('dashAlert','error','❌ '+e.message);
+    else showAlert('dashAlert','error','❌ ' + e.message);
+  }
+  showLoading('dashLoading', false);
+}
+
+function renderLowStock(data) {
+  const tb = document.getElementById('lowStockTable');
+  if (!data.length) {
+    tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--success);padding:24px">✅ ไม่มีสินค้าที่ต้องสั่งซื้อ</td></tr>';
+    return;
+  }
+  tb.innerHTML = data.map(i=>{
+    const isOut = i.qty<=0;
+    return `<tr>
+      <td class="mono">${i.productId}</td><td>${i.productName}</td>
+      <td class="mono ${isOut?'out-stock':'low-stock'}">${i.qty}</td>
+      <td class="mono">${i.minQty}</td><td>${i.unit||'—'}</td>
+      <td>${isOut?'<span class="badge badge-danger">หมด</span>':'<span class="badge badge-warning">ใกล้หมด</span>'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── EXECUTIVE ───────────────────────────────────────────
+async function loadExecutive() {
+  showLoading('execLoading', true);
+  try {
+    const [inv, rpt] = await Promise.all([
+      apiCall({action:'getInventory'}),
+      apiCall({action:'getReport'})
+    ]);
+    document.getElementById('exec-totalIn').textContent = rpt.totalIn||0;
+    document.getElementById('exec-totalOut').textContent = rpt.totalOut||0;
+    document.getElementById('exec-monthIn').textContent = rpt.monthIn||0;
+    document.getElementById('exec-monthOut').textContent = rpt.monthOut||0;
+    renderExecChart(inv);
+  } catch(e) { showAlert('execAlert','error','❌ '+e.message); }
+  showLoading('execLoading', false);
+}
+
+function renderExecChart(inv) {
+  const sorted = [...inv].sort((a,b)=>b.qty-a.qty).slice(0,8);
+  const max = sorted[0]?.qty||1;
+  const el = document.getElementById('execChart');
+  if(!sorted.length){el.innerHTML='<p style="color:var(--text3);font-size:13px">ไม่มีข้อมูล</p>';return;}
+  el.innerHTML = sorted.map(i=>{
+    const pct = Math.max(2, Math.round(i.qty/max*100));
+    return `<div class="bar-row">
+      <div class="bar-label" title="${i.productName}">${i.productName}</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${pct}%">${pct>15?i.qty:''}</div>
+      </div>
+      <div class="bar-value">${i.qty} ${i.unit||''}</div>
+    </div>`;
+  }).join('');
+}
+</script>
+</body>
+</html>
