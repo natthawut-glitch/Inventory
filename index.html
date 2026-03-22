@@ -450,6 +450,50 @@
     .content { padding: 16px; }
     .cards-grid { grid-template-columns: repeat(2, 1fr); }
   }
+
+  /* ── ROLE VISIBILITY ── */
+  .admin-only   { display: none; }
+  .user-only    { display: none; }
+  body.role-admin  .admin-only { display: flex; }
+  body.role-admin  .user-only  { display: none; }
+  body.role-user   .admin-only { display: none; }
+  body.role-user   .user-only  { display: flex; }
+
+  /* login screen */
+  #loginOverlay {
+    position: fixed; inset: 0; z-index: 2000;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .login-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 40px 36px; width: 360px;
+    text-align: center;
+  }
+  .login-logo { font-size: 48px; margin-bottom: 12px; }
+  .login-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .login-sub { font-size: 13px; color: var(--text2); margin-bottom: 28px; }
+  .role-btn {
+    display: flex; align-items: center; gap: 14px;
+    width: 100%; padding: 14px 18px; margin-bottom: 12px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; cursor: pointer; text-align: left;
+    transition: all 0.15s; font-family: 'Sarabun', sans-serif;
+    color: var(--text);
+  }
+  .role-btn:hover { border-color: var(--accent); background: rgba(0,212,170,0.06); }
+  .role-btn:hover .role-btn-icon { color: var(--accent); }
+  .role-btn-icon { font-size: 28px; }
+  .role-btn-label { font-size: 15px; font-weight: 600; }
+  .role-btn-desc  { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+  /* role badge in header */
+  .role-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
+  }
+  .role-badge.admin { background: rgba(0,212,170,0.15); color: var(--accent); }
+  .role-badge.user  { background: rgba(52,152,219,0.15); color: var(--info); }
 </style>
 </head>
 <body>
@@ -603,6 +647,53 @@ function getReport() {
   </div>
 </div>
 
+<!-- LOGIN OVERLAY -->
+<div id="loginOverlay">
+  <div class="login-box">
+    <div class="login-logo">📦</div>
+    <div class="login-title">ระบบควบคุมสต๊อกพัสดุ</div>
+    <div class="login-sub">กรุณาเข้าสู่ระบบ</div>
+
+    <!-- Admin login form -->
+    <div id="adminLoginForm">
+      <div style="margin-bottom:12px;text-align:left;">
+        <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:5px;">Username</label>
+        <input type="text" id="loginUser" placeholder="กรอก username"
+          style="width:100%;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:14px;outline:none;"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
+          onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
+      </div>
+      <div style="margin-bottom:16px;text-align:left;">
+        <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:5px;">Password</label>
+        <input type="password" id="loginPass" placeholder="กรอก password"
+          style="width:100%;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:14px;outline:none;"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
+          onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div id="loginError" style="display:none;background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);border-radius:7px;padding:9px 13px;font-size:13px;color:var(--danger);margin-bottom:14px;text-align:left;">
+        ❌ Username หรือ Password ไม่ถูกต้อง
+      </div>
+      <button onclick="doLogin()" style="width:100%;padding:12px;background:var(--accent);border:none;border-radius:8px;font-family:'Sarabun',sans-serif;font-size:15px;font-weight:700;color:#000;cursor:pointer;margin-bottom:14px;transition:background 0.2s;" onmouseover="this.style.background='#00c49a'" onmouseout="this.style.background='var(--accent)'">
+        🔑 เข้าสู่ระบบ Admin
+      </button>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <div style="flex:1;height:1px;background:var(--border);"></div>
+      <span style="font-size:12px;color:var(--text3);">หรือ</span>
+      <div style="flex:1;height:1px;background:var(--border);"></div>
+    </div>
+
+    <button class="role-btn" onclick="selectRole('user')" style="margin-bottom:0;">
+      <div class="role-btn-icon">👤</div>
+      <div>
+        <div class="role-btn-label">เข้าใช้งานทั่วไป</div>
+        <div class="role-btn-desc">แดชบอร์ดและขอเบิกพัสดุ (ไม่ต้องรหัสผ่าน)</div>
+      </div>
+    </button>
+  </div>
+</div>
+
 <!-- HEADER -->
 <div class="header">
   <div class="logo">
@@ -614,6 +705,10 @@ function getReport() {
       <div class="status-dot connected" id="statusDot"></div>
       <span id="statusText">เชื่อมต่อแล้ว</span>
     </div>
+    <span id="roleBadge" class="role-badge" style="margin-left:8px;"></span>
+    <button onclick="switchRole()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:5px 12px;border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:12px;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+      🔄 เปลี่ยนสิทธิ์
+    </button>
   </div>
 </div>
 
@@ -624,24 +719,26 @@ function getReport() {
     <div class="nav-item active" onclick="showPage('dashboard')">
       <span class="nav-icon">🏠</span><span>แดชบอร์ด</span>
     </div>
-    <div class="nav-item" onclick="showPage('stockin')">
-      <span class="nav-icon">📥</span><span>รับเข้าพัสดุ</span>
-    </div>
     <div class="nav-item" onclick="showPage('stockout')">
       <span class="nav-icon">📤</span><span>เบิกพัสดุ</span>
     </div>
-    <div class="nav-item" onclick="showPage('inventory')">
-      <span class="nav-icon">📊</span><span>สต๊อกพัสดุ</span>
-    </div>
-    <div class="nav-section">รายงาน</div>
-    <div class="nav-item" onclick="showPage('report')">
+
+    <!-- admin-only menus -->
+    <div class="nav-section admin-only">รายงาน</div>
+    <div class="nav-item admin-only" onclick="showPage('report')">
       <span class="nav-icon">📋</span><span>รายงานคงคลัง</span>
     </div>
-    <div class="nav-item" onclick="showPage('executive')">
+    <div class="nav-item admin-only" onclick="showPage('executive')">
       <span class="nav-icon">📈</span><span>รายงานผู้บริหาร</span>
     </div>
-    <div class="nav-section">จัดการ</div>
-    <div class="nav-item" onclick="showPage('products')">
+    <div class="nav-section admin-only">จัดการ</div>
+    <div class="nav-item admin-only" onclick="showPage('stockin')">
+      <span class="nav-icon">📥</span><span>รับเข้าพัสดุ</span>
+    </div>
+    <div class="nav-item admin-only" onclick="showPage('inventory')">
+      <span class="nav-icon">📊</span><span>สต๊อกพัสดุ</span>
+    </div>
+    <div class="nav-item admin-only" onclick="showPage('products')">
       <span class="nav-icon">🗂️</span><span>จัดการพัสดุ</span>
     </div>
   </div>
@@ -1185,9 +1282,97 @@ var config   = { sheetId: SHEET_ID_VAL, scriptUrl: SCRIPT_URL };
 var products = [];
 var inventory = [];
 
+// ─── ROLE MANAGEMENT ─────────────────────────────────────
+var currentRole = null;
+
+// Admin credentials (hashed client-side for basic protection)
+var ADMIN_CREDS = { user: 'admin', pass: 'np@msu' };
+
+function doLogin() {
+  var u = (document.getElementById('loginUser').value || '').trim();
+  var p = (document.getElementById('loginPass').value || '');
+  var errEl = document.getElementById('loginError');
+  if (u === ADMIN_CREDS.user && p === ADMIN_CREDS.pass) {
+    errEl.style.display = 'none';
+    document.getElementById('loginUser').value = '';
+    document.getElementById('loginPass').value = '';
+    selectRole('admin');
+  } else {
+    errEl.style.display = 'block';
+    document.getElementById('loginPass').value = '';
+    document.getElementById('loginPass').focus();
+  }
+}
+
+function selectRole(role) {
+  currentRole = role;
+  localStorage.setItem('stockRole', role);
+  applyRole(role);
+  document.getElementById('loginOverlay').style.display = 'none';
+}
+
+function applyRole(role) {
+  var body = document.body;
+  body.classList.remove('role-admin', 'role-user');
+  body.classList.add('role-' + role);
+
+  var badge = document.getElementById('roleBadge');
+  if (role === 'admin') {
+    badge.textContent = '🔑 Admin';
+    badge.className = 'role-badge admin';
+  } else {
+    badge.textContent = '👤 ผู้ใช้งาน';
+    badge.className = 'role-badge user';
+  }
+
+  // ถ้า user ทั่วไปอยู่หน้าที่ไม่มีสิทธิ์ → redirect ไป dashboard
+  var adminPages = ['stockin','inventory','report','executive','products'];
+  var activePage = document.querySelector('.page.active');
+  if (role === 'user' && activePage) {
+    var pageId = activePage.id.replace('page-','');
+    if (adminPages.indexOf(pageId) >= 0) {
+      goToDashboard();
+    }
+  }
+}
+
+function switchRole() {
+  // Clear credentials and reset to login screen
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginError').style.display = 'none';
+  // Clear saved role so user must log in again
+  localStorage.removeItem('stockRole');
+  currentRole = null;
+  document.getElementById('loginOverlay').style.display = 'flex';
+}
+
+function goToDashboard() {
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+  document.getElementById('page-dashboard').classList.add('active');
+  // mark dashboard nav item active
+  document.querySelectorAll('.nav-item').forEach(function(n){
+    if (n.getAttribute('onclick') && n.getAttribute('onclick').indexOf("'dashboard'") >= 0)
+      n.classList.add('active');
+  });
+  loadDashboard();
+}
+
 // ─── INIT ────────────────────────────────────────────────
 (function init() {
   setStatus(true);
+  // Admin must log in every session for security
+  // User role can be restored from previous session
+  var savedRole = localStorage.getItem('stockRole');
+  if (savedRole === 'user') {
+    currentRole = 'user';
+    applyRole('user');
+    document.getElementById('loginOverlay').style.display = 'none';
+  } else {
+    // Clear any stale admin session
+    localStorage.removeItem('stockRole');
+  }
   loadDashboard();
 })();
 
@@ -1244,6 +1429,12 @@ function showModalAlert(id, type, msg) {
 
 // ─── NAVIGATION ──────────────────────────────────────────
 function showPage(name) {
+  // Block user-role from admin pages
+  var adminPages = ['stockin','inventory','report','executive','products'];
+  if (currentRole === 'user' && adminPages.indexOf(name) >= 0) {
+    showAlert('dashAlert','error','⚠️ คุณไม่มีสิทธิ์เข้าถึงเมนูนี้');
+    return;
+  }
   document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
   document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
   var page = document.getElementById('page-' + name);
@@ -1713,6 +1904,7 @@ function renderOutHistory(data) {
 
 // ─── ADMIN MODAL ─────────────────────────────────────────
 function openAdminModal(reqId) {
+  if (currentRole !== 'admin') { showAlert('dashAlert','error','⚠️ เฉพาะ Admin เท่านั้นที่อนุมัติได้'); return; }
   var req = null;
   for (var i=0;i<outHistory.length;i++) { if(outHistory[i].id===reqId){req=outHistory[i];break;} }
   if (!req) return;
